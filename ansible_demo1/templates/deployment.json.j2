@@ -1,0 +1,122 @@
+{
+  "apiVersion": "extensions/v1beta1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "{{  servicename }}-kd",
+    "namespace":"$NAMESPACE",
+    "labels": {
+      "environment": "$NAMESPACE",
+      "application": "fes"
+    }
+  },
+  "spec": {
+    "replicas": $K8S_REPLICAS,
+    "progressDeadlineSeconds": $K8S_PROGRESS_DEADLINE_SECS,
+    "strategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate": {
+        "maxUnavailable": $K8S_MAX_UNAVAIL,
+        "maxSurge": $K8S_MAX_UNAVAIL
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "deployment": "{{  servicename }}-klb",
+          "application": "fes"
+        }
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "imagePullSecrets": [
+          {
+            "name": "registry-secret"
+          }
+        ],
+        "containers": [
+          {
+            "name": "{{  servicename }}-kc",
+            "image": "$DOCKER_APP_IMAGE",
+            "resources": {
+              "requests": {
+              "memory": "$K8S_REQ_MEM",
+              "cpu": "$K8S_REQ_CPU"
+              },
+              "limits": {
+              "memory": "$K8S_LIMIT_MEM",
+              "cpu": "$K8S_LIMIT_CPU"
+              }
+            },
+            "readinessProbe":   {
+                "httpGet": {
+                  "scheme": "HTTPS",
+                  "path": "/{{  servicename }}/health",
+                  "port": 8443
+
+                },
+                "initialDelaySeconds": $READINESS_INITIAL_DELAY,
+                "timeoutSeconds": $READINESS_TIMEOUT_SECONDS,
+                "periodSeconds": $READINESS_PERIOD_SECONDS,
+                "successThreshold": $READINESS_SUCCESS,
+                "failureThreshold": $READINESS_FAILURE
+              },
+            "livenessProbe":   {
+                "httpGet": {
+                  "scheme": "HTTPS",
+                  "path": "/{{  servicename }}/health",
+                  "port": 8443
+
+                },
+                "initialDelaySeconds": $LIVENESS_INITIAL_DELAY,
+                "timeoutSeconds": $LIVENESS_TIMEOUT_SECONDS,
+                "periodSeconds": $LIVENESS_PERIOD_SECONDS,
+                "successThreshold": $LIVENESS_SUCCESS,
+                "failureThreshold": $LIVENESS_FAILURE
+              },
+            "imagePullPolicy": "Always",
+            "env": [
+            {
+              "name": "VAULT_TOKEN",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "vault-fes-secret",
+                  "key": "vault-token"
+                }
+              }
+            },
+            {
+              "name": "VAULT_ADDR",
+              "valueFrom": {
+                "configMapKeyRef": {
+                  "name": "vault-config",
+                  "key": "vault_addr"
+                }
+              }
+            },
+            {
+              "name": "VAULT_ENV_PATH",
+              "valueFrom": {
+                "configMapKeyRef": {
+                  "name": "vault-config",
+                  "key": "vault_env_path"
+                }
+              }
+            }
+
+            ],
+            "ports": [
+              {
+                "containerPort": 8443,
+                "name": "tomcat-http"
+              },
+              {
+                "containerPort": 8080,
+                "name": "e2edemo"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

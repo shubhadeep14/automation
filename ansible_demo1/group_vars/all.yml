@@ -1,0 +1,19 @@
+---
+environmentprofiles:
+  small:
+    name: devinstance
+    memory: 100Mi
+    cpu: 500m
+  medium:
+    name: prdinstance
+    memory: 200Mi
+    cpu: 1000m
+  large:
+    name: prdinstance
+    memory: 300Mi
+    cpu: 1000m
+
+environments:
+  - { name: 'dev', profile: 'small' }
+  - { name: 'autosit', profile: 'medium' }
+  - { name: 'prd1', profile: 'large' }	
